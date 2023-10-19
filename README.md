@@ -35,7 +35,7 @@
 ## 安装
 
 - ### Anaconda 安装
-    <img src="./conda.jpeg" alt=conda width=50%>
+    ![conda](./conda.jpeg)
 
 1. 从 Anaconda 官网 [下载](https://www.anaconda.com/download)，如果网速慢可以从清华镜像源 [下载](https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/) 并安装 Anaconda3 。
 
