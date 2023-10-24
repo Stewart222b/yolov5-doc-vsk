@@ -1,0 +1,22 @@
+Human
+Vehicle
+License plate
+Deer
+Antler
+Turkey
+Eagle
+Hog
+Bird
+Bear
+Raccoon
+Lynx
+Wolf
+Fox
+Dog
+Goat
+Tiger
+Squirrel
+Groundhog
+Cattle
+Rabbit
+Armadillo
