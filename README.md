@@ -1,3 +1,4 @@
+@[toc]
 # YOLOv5 使用说明
 :arrow_right:： YOLOv5 的基础教程
 
@@ -32,17 +33,17 @@
 ![四个阶段](./imgs/cv_intro.png)
 上面这张图很好的概括了计算机视觉（Computer Vision）中图像识别技术的四类任务：
 
-图像分类（Image Classification）
-:arrow_down:
-图像分类 + 定位（Image Classification + Localization）
-:arrow_down:
+图像分类（Image Classification）  
+:arrow_down:  
+图像分类 + 定位（Image Classification + Localization）  
+:arrow_down:  
 目标检测（Object Detection）
-:arrow_down:
-实例分割（Instance Segmentation）
+:arrow_down:  
+实例分割（Instance Segmentation）  
 
 这四类任务的难度呈递进关系，实例分割是功能最强大但难度最高的任务，虽然其功能强大，但一般项目的硬件并不能支撑模型的运行。相比之下，目标检测模型则在保证了其功能的情况下不需要很强大的性能来运行。
 
-近几年来，目标检测算法取得了很大的突破。比较流行的算法可以分为两类：
+近几年来，目标检测算法取得了很大的突破。比较流行的算法可以分为两类：  
 - 一类是基于Region Proposal 的 R-CNN 系算法（R-CNN，Fast R-CNN, Faster R-CNN），它们是 **two-stage** 的算法，需要先使用启发式方法（selective search）或者 CNN 网络（RPN）产生 Region Proposal，然后再在 Region Proposal 上做分类与回归。
 - 而另一类是 YOLO，SSD 这类 **one-stage** 算法，其仅仅使用一个 CNN 网络直接预测不同目标的类别与位置。
 
@@ -189,11 +190,10 @@ pip install -r requirements.txt
 
 
 ### 1. 数据获取
-通常由客户提供数据。
-例如 `非机动车项目`和 `狩猎相机项目` 分别提供了 1000 张和 5000 张左右的图像。
+通常由客户提供数据。  
 
 ### 2. 确定类别
-#### 客户给定类别：
+#### 给定类别：
 以 `非机动车项目` 为例，客户要求识别出非机动车并判断是否停放在禁停位置。因非机动车多为两轮车，故将自行车、电瓶车等合并为 `bicycle` 类，共 `1` 类。
 #### 边标注边增加类别：
 以 `狩猎相机项目` 为例，客户的部分要求为识别出数种动物。因无法确定有多少种动物，故在标注开始时设置几个客户要求的动物类别，并在标注过程中添加出现的动物类别，共 `22` 类。
@@ -221,8 +221,7 @@ pip install -r requirements.txt
 :warning:：格式很重要，格式对了 YOLO 才能正确检测到**图像文件**和其对应**标注文件**
 
 ### 4. 标注标准
-#### 标注边框必须在大于目标边界（不涉及被遮挡目标）：
-以下举出两个项目中的例子
+#### 标注边框必须大于目标边界（不涉及被遮挡目标）：
 - `青岛地铁项目` 中的错误标注：
 ![青岛01](./imgs/qd_01.jpg)
 上图中共标注了两个类别 `person`（人）和 `helmet`（头盔）。标注问题：其中左一人物的 `person` 的标注边框并未将伸出去的手臂包括在内。这样标注会导致训练出的模型在人物做出动作时仍只识别其躯干。
@@ -235,30 +234,43 @@ pip install -r requirements.txt
 ![狩猎02](./imgs/hc_02.jpg)
 
 #### 尽量标注每张图中所有的目标：
-YOLO 官方给的建议是标注出所有目标，但是在实际标注的时候不能完全遵守。
-
-如果客户发来的数据场景与实际的
-
-可以用下面这张图片来解释
-
+在类别很少但是目标很密集或很难辨识的情况（如 `非机动车项目` 只有 1 个 `bicycle` 类）下，也必须尽量标注出所有的目标，即使很多目标被大幅度遮挡，也要标注出来，否则识别效果不理想。
+- `非机动车项目` 例图
 ![非机动车](./imgs/b.jpg)
-假设现在有 20 个类别要标注，`非机动车` 为其中的一类。因为现在有很多个类别要区分，即使这张图中有很多的非机动车，但因为辨识度太差，只能标注出其中较清楚的几辆。
+第一版模型标注示例：
+![非机动车01](./imgs/b_01.jpg)
+第一版模型识别结果：
+![非机动车02](./imgs/b_02.jpg)
+第二版模型标注示例：
+![非机动车03](./imgs/b_03.jpg)
+第二版模型识别结果：
+![非机动车04](./imgs/b_04.jpg)
 
-在类别很少但是目标很密集的情况（比如 `非机动车项目` 只有 1 个 `bicycle` 类），必须标注出所有的目标，即使很多目标被大幅度遮挡，也要标注出来，否则识别效果非常不理想
+在类别很多但是目标很密集或者很难辨识的情况（如 `狩猎相机项目` 有 22 个类别）下，可以考虑放弃标注一些辨识度很低的目标。这样可以有效降低假阳（False Positive）率和误识率。
+- `狩猎相机项目` 例图
+![狩猎03](./imgs/hc_03.jpg)
+上面这张图全部都是辨识度很高的 `Turkey`（火鸡）类，因此标注时候可以全部标注。
+![狩猎04](./imgs/hc_04.jpg)
+但像下面这张图虽然也全部是火鸡，但是红框部分中的火鸡辨识度很低。
+![狩猎05](./imgs/hc_05.jpg)
+人类能辨识出后面是火鸡是因为我们可以直接接收整张图片的信息，并由前面的火鸡来推断出这是一个火鸡群。YOLO 虽然是 one-stage 算法，但是其在检测的时候也是把图像分成数十个小区域。在 YOLO 看来，这张图片的红框部分可能是这样的：
+![狩猎06](./imgs/hc_06.jpg)
+与 `非机动车项目` 不同，该项目有很多类，如果把这种特征模糊辨识度低的实例放入 `Turkey` 类，会让模型将许多背景识别成火鸡（许多场景是在复杂的森林中），也可能会将许多别的动物（如 `Bird`（鸟）类和 `Eagle`（鹰）类）误识别成火鸡。因此标注的时候并未标注出后方火鸡。
+![狩猎07](./imgs/hc_07.jpg)
 
 #### 被遮挡目标的用统一的标注方法：
-`青岛地铁项目` 例图
-![青岛](./imgs/qd_03.jpg)
-第一种标注
-![青岛](./imgs/qd_04.jpg)
-第二种标注
-![青岛](./imgs/qd_05.jpg)
+- `青岛地铁项目` 例图：
+![青岛03](./imgs/qd_03.jpg)
+第一种标注：
+![青岛04](./imgs/qd_04.jpg)
+第二种标注：
+![青岛05](./imgs/qd_05.jpg)
 上两图中共标注了两个类别 `person`（人）和 `helmet`（头盔）。两张图片的标注区别主要在于右一人物的 `person` 类标注的位置。第一张图只标注了未被遮挡的部分，而第二张图则同时标注了未被遮挡的部分和被遮挡的部分。**这两种标注方法都没有问题，但是在一个数据集中一定要只采用一种方法而不能多种方法来回使用**。
 ### 5. 标注数据
 可在线标注或使用标注工具 labelImg 进行标注。
 #### 在线标注：
 YOLO 官方推荐的标注平台：[Roboflow](https://roboflow.com/annotate)
-:warning: 由于项目数据大多保密，项目数据不推荐在线标注
+:warning: 由于项目数据可能保密，项目数据不推荐在线标注
 
 #### labelImg 标注：
 labelImg 官网 [下载](https://github.com/HumanSignal/labelImg)（打包好的版本 [下载]()）
@@ -266,12 +278,10 @@ labelImg 官网 [下载](https://github.com/HumanSignal/labelImg)（打包好的
 使用教程：[LabelImg（目标检测标注工具）的安装与使用教程](https://blog.csdn.net/knighthood2001/article/details/125883343)
 
 ### 6. 数据校验
-YOLO 官方建议每个类别有超过 **1000** 个实例，但实际情况根据数据集大小来决定。
+YOLO 官方建议每个类别有超过 **1000** 个实例，但实际情况根据数据集大小来决定。最重要的是**保证每个类别都有足够的多种多样的实例**。
 
 #### 检查每个类别实例（标签）数量
 ```python {.line-numbers}
-# 项目名称：Hunt Camera
-# 程序内容：统计数据集各类别标签数量
 import os
 # 类别
 #classes = open(os.path.dirname(__file__) + "/classes.txt", mode='r').read().rstrip("\n").split("\n") # 获取数据集类别
@@ -367,25 +377,65 @@ print(bad_class)
 ```
 设定的警告值为小于 50 ，数据集中的 `License plate` （车牌）类别被警告实例数量过少。
 
-### 7. 数据补充
-可通过不同方法补充新的数据来
+### 7. 增加数据
+可通过不同方法去增加数据，来提升模型的识别精度和广度，尤其是对于实例很少的类别。
 
-#### 客户提供
-如果客户可以提供更多样的数据，对模型识别的精度和广度有很大提升
-- 以 `青岛地铁项目` 为例，一开始并没有类别 `train`（火车）的数据导致识别效果很差。但随着地铁试运行后获得很多新数据，使得模型对 `train` 的识别精度提升很大
+#### 客户提供：
+如果客户可以提供更多样的数据，对模型识别的精度和广度有很大提升。
+- 以 `青岛地铁项目` 为例，一开始并没有类别 `train`（火车）的数据导致识别效果很差。但随着地铁试运行后获得很多新数据，使得模型对 `train` 的识别精度提升很大。
 
-#### 网络搜索
-如果客户不能提供更多数据，可以自行在网络上搜索新的数据
-- 以 `非机动车项目` 为例，数据集中有非常多的堆叠自行车，但却几乎没有完整/不被遮挡的自行车，因此需要自行添加一些高质量的自行车图像
+#### 网络搜索：
+如果客户不能提供更多数据，可以自行在网络上搜索新的数据。
+- 以 `非机动车项目` 为例，数据集中有非常多的堆叠自行车，但却几乎没有完整/不被遮挡的自行车，因此需要自行添加一些高质量的自行车图像。
 
-#### 数据增强（Data Augmentation）
+#### 数据增强（Data Augmentation）：
 **定义**：数据增强也叫数据扩增，意思是在不实质性的增加数据的情况下，让有限的数据产生等价于更多数据的价值
+
 关于数据增强的介绍:[【机器学习】数据增强(Data Augmentation)](https://blog.csdn.net/u010801994/article/details/81914716)
 
 虽然数据增强通常可以借助现有数据产生许多新的数据，但在 YOLOv5 中，数据增强是在训练过程中进行的，并不会实质性的产生新数据，因此需要在训练之前调整相关函数或直接在训练时修改关于数据增强的超参数。
 
 **修改代码来调整数据增强**：[YOLOv5 使用的数据增强方法汇总](https://blog.csdn.net/weixin_44751294/article/details/126211751)
 
+**修改超参数（Hyperparameter）来调整数据增强**：  
+yolov5 在训练的时候 `--hyp` 参数默认调用 `hyp.scratch-low.yaml` 超参数文件：
+```python {.line-numbers}
+parser.add_argument('--hyp', type=str, default=ROOT / 'data/hyps/hyp.scratch-low.yaml', help='hyperparameters path')
+```
+具体内容如下
+```python
+lr0: 0.01  # 初始学习率 (SGD=1E-2, Adam=1E-3)
+lrf: 0.01  # 循环学习率 (lr0 * lrf)
+momentum: 0.937  # SGD momentum/Adam beta1 学习率动量
+weight_decay: 0.0005  # 权重衰减系数 
+warmup_epochs: 3.0  # 预热学习 (fractions ok)
+warmup_momentum: 0.8  # 预热学习动量
+warmup_bias_lr: 0.1  # 预热初始学习率
+box: 0.05  # iou损失系数
+cls: 0.5  # cls损失系数
+cls_pw: 1.0  # cls BCELoss正样本权重
+obj: 1.0  # 有无物体系数(scale with pixels)
+obj_pw: 1.0  # 有无物体BCELoss正样本权重
+iou_t: 0.20  # IoU训练时的阈值
+anchor_t: 4.0  # anchor的长宽比（长:宽 = 4:1）
+# anchors: 3  # 每个输出层的anchors数量(0 to ignore)
+#以下系数是数据增强系数，包括颜色空间和图片空间
+fl_gamma: 0.0  # focal loss gamma (efficientDet default gamma=1.5)
+hsv_h: 0.015  # 色调 (fraction)
+hsv_s: 0.7  # 饱和度 (fraction)
+hsv_v: 0.4  # 亮度 (fraction)
+degrees: 0.0  # 旋转角度 (+/- deg)
+translate: 0.1  # 平移(+/- fraction)
+scale: 0.5  # 图像缩放 (+/- gain)
+shear: 0.0  # 图像剪切 (+/- deg)
+perspective: 0.0  # 透明度 (+/- fraction), range 0-0.001
+flipud: 0.0  # 进行上下翻转概率 (probability)
+fliplr: 0.5  # 进行左右翻转概率 (probability)
+mosaic: 1.0  # 进行Mosaic概率 (probability)
+mixup: 0.0  # 进行图像混叠概率（即，多张图像重叠在一起） (probability)
+copy: 0.0 # 进行分割复制粘贴（需要 segments 数据才可用）（probability）
+```
+yolov5 的数据增强是大部分是随机调用的，可以通过调整参数来提高或降低调用概率。
 
 ---
 
@@ -401,14 +451,25 @@ demo 数据集在这里 [下载](https://www.aliyundrive.com/s/hz6un5Kd9T5) ，�
 ```bash
 cd C:/projects/yolo/yolov5 # 位置修改一下
 ```
-训练命令
+基础的训练命令
 ```bash
 python train.py --batch -1 --epoch 100 --weights yolov5s.pt --data ./data/A.yaml
 ```
-`--batch`：每一批训练的图片数量
-`--epoch`：训练轮数
-`--weights` ：训练权重
-`--data`：训练数据
+`--batch`：每一批训练的图片数量，`-1` 代表 YOLO 自动设置硬件能承受的最大 `batch size` 。 
+`--epoch`：训练轮数。  
+`--weights` ：训练权重。权重模型越大，训练速度越满，训练出的模型也越大，识别精度也越高。  
+`--data`：训练数据。自定义一个 `yaml` 格式的文件，格式如下：
+```python
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+train: ../datasets/yolo_A/images/
+val: ../datasets/yolo_A/images/
+# test: ../datasets/yolo_A/images/
+# number of classes
+nc: 1
+
+# class names
+names: ['A meng']
+```
 
 以下为 `train.py` 中的所有参数
 ```python {.line-numbers}
@@ -470,12 +531,11 @@ def parse_opt(known=False):
 平台：[AutoDL算力云](https://www.autodl.com/home)
 教程：[快速开始](https://www.autodl.com/docs/quick_start/)
 
-### 结果分析
+### 训练结果
 检测指令
 ```bash
 python detect.py --weights ./runs/train/exp2/weights/best.pt --img 640 --conf 0.25 --source ../test2.jpg --save-txt
 ```
-:triangular_flag_on_post:
 
 ---
 
