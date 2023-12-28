@@ -22,15 +22,14 @@
     - [模型导出](#模型导出)
     - [模型查看](#模型查看)
     - [量化工具](#量化工具)
-- [模型部署](#模型部署)
-    - [模型转换](#模型转换)
+    - [模型量化精度对比](#模型量化精度对比)
 
 ---
 
 ## YOLOv5 介绍
 
 ![四个阶段](./imgs/cv_intro.png)
-上面这张图很好的概括了计算机视觉（Computer Vision）中图像识别技术的四类任务：
+上图概括了计算机视觉（Computer Vision）中图像识别技术的四类任务：
 
 图像分类（Image Classification）  
 :arrow_down:  
@@ -42,7 +41,7 @@
 
 这四类任务的难度呈递进关系，实例分割是功能最强大但难度最高的任务，虽然其功能强大，但一般项目的硬件并不能支撑模型的运行。相比之下，目标检测模型则在保证了其功能的情况下不需要很强大的性能来运行。
 
-近几年来，目标检测算法取得了很大的突破。比较流行的算法可以分为两类：  
+近几年比较流行的算法可以分为两类：  
 - 一类是基于Region Proposal 的 R-CNN 系算法（R-CNN，Fast R-CNN, Faster R-CNN），它们是 **two-stage** 的算法，需要先使用启发式方法（selective search）或者 CNN 网络（RPN）产生 Region Proposal，然后再在 Region Proposal 上做分类与回归。
 - 而另一类是 YOLO，SSD 这类 **one-stage** 算法，其仅仅使用一个 CNN 网络直接预测不同目标的类别与位置。
 
@@ -59,11 +58,42 @@
 
 ### Anaconda 安装
 
-Anaconda 官网 [下载](https://www.anaconda.com/download)，网速慢可从清华镜像源 [下载](https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/) 并安装 Anaconda3 。
+Anaconda 官网 [下载](https://www.anaconda.com/download)，网速慢可从清华镜像源 [下载](https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/) Anaconda3 。
+
+![Conda](./imgs/Conda.jpg)
+
+#### Windows 安装流程
+
+详细教程：[Anaconda超详细安装教程（Windows环境下）](https://blog.csdn.net/fan18317517352/article/details/123035625)
+
+#### Ubuntu 安装流程
+
+下载后进入终端，执行以下命令：
+```bash {.line-numbers}
+cd /home/vsk/下载
+bash Anaconda3-2023.09-0-Linux-x86_64.sh
+```
+- 然后提示必须阅读条款后才能安装，按下 `Enter` 键继续
+![Conda01](./imgs/Conda_01.jpg)
+
+- 一路回车到底会看见是否接受条款的选项，输入 yes 即可
+![Conda02](./imgs/Conda_02.jpg)
+
+- 之后会问安装 Anaconda3 到哪个位置，默认的位置即可，按下 `Enter` 键继续
+![Conda03](./imgs/Conda_03.jpg)
+
+- 安装完成后，会询问是否将 Anaconda3 在终端启动的时候自动切换到 `base` 环境，输入 yes 即可
+![Conda04](./imgs/Conda_04.jpg)
+
+关闭并重新进入终端，此时应看到输入行的最左端出现了 `(base)` 字样，表示当前环境为 `base` 环境，即 Anaconda 安装完成
+```bash {.line-numbers}
+(base) vsk@vsk-X99-Turbo:~$ 
+```
 
 ### 搭建 YOLO 环境
 
 #### 1. <span id="jump"></span>查看环境
+进入终端或 cmd，输入以下命令来查看环境
 ```bash {.line-numbers}
 conda env list # 查看 Anaconda 环境
 ```
@@ -75,10 +105,7 @@ base                    /Users/Stewart222b/anaconda3
 ```
 
 #### 2. 创建新环境
-```bash {.line-numbers}
-conda create -n yolo # 创建 Anaconda 环境
-```
-python 版本默认为 `base` 环境中的 python 版本。如对 python 版本有要求，可以在末尾加上 `python=3.x` （ x 为任意版本）在指令末尾
+使用以下命令创建一个名为 `yolo` 的环境，python 版本为 3.8
 ```bash {.line-numbers}
 conda create -n yolo python=3.8 # 创建 python 版本为 3.8 的环境
 ```
@@ -93,7 +120,7 @@ yolo                    /Users/Stewart222b/anaconda3/envs/yolo
 ```bash {.line-numbers}
 conda activate yolo # 切换到 yolo 环境
 ```
-执行完毕后，terminal 或者 cmd 的命令输入行左侧应出现 `(yolo)`：
+执行完毕后，命令输入行左侧应出现 `(yolo)`：
 ```bash {.line-numbers}
 (yolo) Stewart222b@This-MacBook-Pro ~ % # terminal
 (yolo) C:\Projects> # cmd
@@ -111,12 +138,64 @@ git clone https://github.com/ultralytics/yolov5.git
 ```
 
 #### 2. 安装
-在 `yolo` 环境下安装所需要的库
+进入下载的 `yolov5` 源码文件夹，在 `yolo` 环境下安装所需要的库
 ```bash {.line-numbers}
 conda activate yolo
+cd D:/Projects/yolo/yolov5/ # 根据自己的文件夹位置来修改
 pip install -r requirements.txt
 ```
-之后就可开始准备数据集了。本文档提供了一个 demo 数据集，如想直接训练模型可以跳转到 [模型训练](#模型训练) 。
+如果网速过慢，可使用镜像源来进行安装
+```bash {.line-numbers}
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple # 这里使用的清华源
+```
+#### 3. 测试
+##### 测试 GPU 是否可用
+```bash {.line-numbers}
+conda activate yolo
+python
+>>import torch
+>>print(torch.cuda.is_available())
+```
+如果输出 `True` 则说明可用，否则请检查是否安装的是 CPU 版本的 pytorch
+```bash {.line-numbers}
+conda activate yolo
+python
+>>import torch
+>>print(torch.__version__)
+```
+如果输出 `torch+cpu` 则说明安装的 CPU 版本的 pytorch，需要重新安装 GPU 版本的 pytorch
+
+##### 测试 `train.py` 是否可用
+输入以下命令来测试 YOLOv5 模型训练
+```bash {.line-numbers}
+python train.py --epoch 1
+```
+然后 YOLOv5 会下载 COCO128 数据集，相应的字体文件 `Arial.ttf` 和权重模型文件 `yolov5s.pt` 并开始训练 1 轮（默认是 100 轮），训练完成后会将结果保存在 `yolov5/runs/train` 文件夹中。
+
+如果下载数据集和相关文件的网速过慢导致下载失败，可在这里 [下载](https://pan.baidu.com/s/1Ndm6VzXAestoNz_FLjnrgw)（提取码：`pvs4`），里面存放了需要的文件和数据集。解压后：
+- 将 `datasets` 文件夹放在 `yolov5` 文件夹的同一路径下（不放在文件夹里面）
+- Windows 环境下将 `Arials.ttf` 放在 `.../AppData/Roaming/Ultralytics/` 路径下面；Ubuntu 环境下将 `Arials.ttf` 放在 `~/.config/` 路径下面。
+- 将 `yolov5s.pt` 放在 `yolov5` 文件夹中，重新运行 `train.py` 即可。
+
+如果训练成功，最后一行应该输出保存位置：
+```bash {.line-numbers}
+Results saved to runs/train/exp
+```
+
+##### 测试 `detect.py` 是否可用
+
+输入以下命令来测试 YOLOv5 图像检测
+```bash {.line-numbers}
+python detect.py
+```
+然后 YOLOv5 会对 `data/images` 里面的两张样图进行检测，检测完成后会将结果保存在 `yolov5/runs/detect` 文件夹中。
+
+如果检测成功，最后一行同样会输出保存位置：
+```bash {.line-numbers}
+Results saved to runs/detect/exp
+```
+
+之后就可开始准备数据集了。本文档提供了一个 非机动车项目的 数据集，如果想直接训练模型可以跳转到 [模型训练](#模型训练) 。
 
 ---
 
@@ -184,7 +263,7 @@ pip install -r requirements.txt
 >
 >如果你想了解更多，Karpathy 的 'Recipe for Training Neural Networks' 是一个很好的开始，其中有很好的训练想法，广泛应用于所有 ML 领域：[http://karpathy.github.io/2019/04/25/recipe/](http://karpathy.github.io/2019/04/25/recipe/)
 >
->祝你好运🍀，如果你有任何其他问题请联系我们!
+>祝你好运🍀，如果你有任何其他问题请联系我们！
 
 
 
@@ -270,12 +349,14 @@ pip install -r requirements.txt
 可在线标注或使用标注工具 labelImg 进行标注。
 #### 在线标注：
 YOLO 官方推荐的标注平台：[Roboflow](https://roboflow.com/annotate)
-:warning: 由于项目数据可能保密，不推荐在线标注
 
 #### labelImg 标注：
-labelImg 官网 [下载](https://github.com/HumanSignal/labelImg)（打包好的版本 [下载](https://www.aliyundrive.com/s/QsEJT2QebFP)，提取码：`13hj`）
 
-使用教程：[LabelImg（目标检测标注工具）的安装与使用教程](https://blog.csdn.net/knighthood2001/article/details/125883343)
+labelImg 是一个用于图像标注的跨平台工具，支持 Windows、macOS 和 Linux。
+
+labelImg 官网 [下载](https://github.com/HumanSignal/labelImg)
+
+教程：[LabelImg（目标检测标注工具）的安装与使用教程](https://blog.csdn.net/knighthood2001/article/details/125883343)
 
 ### 6. 校验数据
 YOLO 官方建议每个类别有超过 **1000** 个实例，但实际情况根据数据集大小来决定。最重要的是**保证每个类别都有足够的多种多样的实例**。
@@ -382,7 +463,7 @@ print(bad_class)
 
 #### 客户提供：
 如果客户可提供更多样的数据，对模型识别的精度和广度有很大提升。
-- 以 `青岛地铁项目` 为例，一开始并没有类别 `train`（火车）的数据导致识别效果很差。但随着地铁试运行后获得很多新数据，使得模型对 `train` 的识别精度提升很大。
+- 以 `青岛地铁项目` 为例，一开始并没有类别 `train`（列车）的数据导致识别效果很差。但随着地铁试运行后获得很多新数据，使得模型对 `train` 的识别精度提升很大。
 
 #### 网络搜索：
 如客户不能提供更多数据，可在网络上搜索新的数据。
@@ -403,7 +484,7 @@ yolov5 在训练的时候 `--hyp` 参数默认调用 `hyp.scratch-low.yaml` 超�
 parser.add_argument('--hyp', type=str, default=ROOT / 'data/hyps/hyp.scratch-low.yaml', help='hyperparameters path')
 ```
 具体参数：
-```python
+```python{.line-numbers}
 lr0: 0.01  # 初始学习率 (SGD=1E-2, Adam=1E-3)
 lrf: 0.01  # 循环学习率 (lr0 * lrf)
 momentum: 0.937  # SGD momentum/Adam beta1 学习率动量
@@ -441,35 +522,52 @@ yolov5 的数据增强是大部分是随机调用的，可以通过调整参数�
 
 ## 模型训练
 
-demo 数据集内容：50 张哆啦A梦的图片。类别仅有 1 类：A Meng
+`非机动车项目` 数据集在这里 [下载](https://www.alipan.com/s/kXZrhqAD2Hn)（提取码：`lb28`）
 
-demo 数据集在这里 [下载](https://www.aliyundrive.com/s/hz6un5Kd9T5) ，提取码：`e28r`
+数据集内容：上海江桥地铁口录像
+- 训练集 (train)：`880` 张图像，其中 `24` 张为**负样本**（即背景，不包含检测目标的图像）
+- 验证集 (val)：`131` 张图像，其中 `6` 张为负样本
+
+类别有 `1` 类：`Non-motor vehicle`（非机动车）
 
 
 ### 本地训练
-路径转到 `yolov5` 文件夹
-```bash
-cd C:/projects/yolo/yolov5 # 位置修改一下
-```
-基础训练命令：
-```bash
-python train.py --batch -1 --epoch 100 --weights yolov5s.pt --data ./data/A.yaml
-```
-`--batch`：每一批训练的图片数量，`-1` 代表 YOLO 自动设置合适的 `batch size`。   
-`--epoch`：训练轮数。  
-`--weights` ：训练权重。权重模型越大，训练速度越满，训练出的模型也越大，识别精度也越高。  
-`--data`：训练数据。自定义一个 `yaml` 格式的文件，格式如下：
-```python
-# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
-train: ../datasets/yolo_A/images/
-val: ../datasets/yolo_A/images/
-# test: ../datasets/yolo_A/images/
-# number of classes
-nc: 1
+- 以提供的 `非机动车项目` 数据集在 Ubuntu 20.04 环境中为例，如果没有 `yolov5` 所在路径没有 `datasets` 文件夹，则需要先创建，位置如图所示：
+![train](./imgs/train.jpg)
+- 将数据集中的 `bicycle` 文件夹放到 `datasets` 文件夹中，里面还存放着先前测试 `train.py` 时下载的 `coco128` 数据集：
+![train01](./imgs/train_01.jpg)
+- 进入 `yolov5/data` 文件夹，创建一个名为 `bicycle.yaml` 的文件，内容如下：
+    ```python{.line-numbers}
+    # train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+    train: ../datasets/bicycle/train/images/
+    val: ../datasets/bicycle/val/images/
+    # test: ../datasets/yolo_A/images/
+    # number of classes
+    nc: 1
 
-# class names
-names: ['A meng']
-```
+    # class names
+    names: ['bicycle']
+    ```
+- 打开终端，切换到 `yolo` 环境，路径转到 `yolov5` 文件夹下
+    ```bash{.line-numbers}
+    conda activate yolo
+    cd ~/yolov5 # 位置修改一下
+    ```
+    基础训练命令：
+    ```bash
+    python train.py --batch -1 --epoch 200 --weights yolov5s.pt --data ./data/bicycle.yaml
+    ```
+    `--batch`：每一批训练的图片数量，`-1` 代表自动设置显卡能承受的最大的的 `batch size`。   
+    `--epoch`：训练轮数。  
+    `--weights` ：训练权重。权重模型越大，训练速度越慢，训练出的模型也越大，识别精度也越高。  
+    `--data`：训练数据。内容为 `.yaml` 格式的文件
+
+- 训练开始之前，YOLO 会做一些准备并且读取分析数据，界面会变成如下所示：
+![train01](./imgs/train_02.jpg)
+
+- 如果没有报错，准备完成后会开始模型的训练。每一轮结束后都会更新训练的结果：
+![train01](./imgs/train_03.jpg)
+
 `train.py` 中的所有参数
 ```python {.line-numbers}
 def parse_opt(known=False):
@@ -517,9 +615,10 @@ def parse_opt(known=False):
 
     return parser.parse_known_args()[0] if known else parser.parse_args()
 ```
+在训练更复杂更庞大的模型的时候需要用到更多的参数，这些参数可以通过命令行来指定，也可以通过配置文件来指定。
 
 ### 线上训练
-除了在自己的设备上训练，也可以在服务器上来训练模型。一些线上训练的优缺点：
+除了在自己的设备上训练，也可以在服务器上来训练模型。
 - 优点：
     - 速度快：服务器上的显卡大多性能强大、算力高，如 RTX4090 等。
     - 不占资源：线上训练不影响本地设备的性能。
@@ -533,30 +632,31 @@ def parse_opt(known=False):
 ### 训练结果
 
 **位置**  
-如果未在训练时指定 `--project` 参数和 `--name` 参数，训练结果将保存在 `yolov5/runs/train/exp` 路径下。里面有一个 `weights` 文件夹存放着`best.pt` 和 `last.pt` 两个训练后得到的模型。`last.pt` 是最后一轮训练完的模型，`best.pt` 的评判标准官方文档没有写，但 `train.py` 中的源码显示是按照 P，R，mAP@0.5，mAP@0.5:0.95 四个属性的权重来算的。
+如果未在训练时指定 `--project` 参数和 `--name` 参数，训练结束后结果将保存在 `yolov5/runs/train/` 路径下。里面有一个 `weights` 文件夹存放着`best.pt` 和 `last.pt` 两个训练后得到的模型。`last.pt` 是最后一轮训练完的模型，`best.pt` 的评判标准官方文档没有写，但 `train.py` 中的源码显示是按照 `P`，`R`，`mAP@0.5`，`mAP@0.5:0.95` 四个属性的权重来算的。通常在用训练模型做检测的时候会优先使用 `best.pt` 模型。
 
 **分析**  
-除了 `weights` 文件夹，还有其他一些训练结果的文件。  
-关于这些结果的解析：[yolov5训练结果解析
+除了 `weights` 文件夹，还有其他关于训练结果的文件。  
+结果解析：[yolov5训练结果解析
 ](https://blog.csdn.net/XiaoGShou/article/details/118274900)
 
 ---
 
 ## 模型检测
-路径转到 `yolov5` 文件夹
-```bash
-cd C:/projects/yolo/yolov5 # 位置修改一下
+打开终端或 cmd，切换到 `yolo` 环境，路径转到 `yolov5` 文件夹下
+```bash{.line-numbers}
+conda activate yolo
+cd ~/yolov5 # 位置修改一下
 ```
 基础检测命令：
 ```bash
 python detect.py --weights ./runs/train/exp/weights/best.pt --source ../test.jpg --save-txt
 ```
-`--weights` 参数指定用来检测的模型，通常为训练好的模型。  
-`--source` 参数指定需要检测的数据，可以是单张图像、单个视频，也可以是一个存放图像和视频的文件夹。  
-`--save-txt` 参数用于生成结果的 `txt` 标注文件，文件格式和训练用的标注一样。
+`--weights` 参数指定用来检测的模型，内容为训练好的模型。  
+`--source` 参数指定需要检测的数据，可以是单张图像、单个视频，也可以是一个存放图像和视频的目录。  
+`--save-txt` 参数用于生成检测结果的 `.txt` 标注文件，文件格式和训练模型用的标注一样。
 
 `detect.py` 中的所有参数
-```python
+```python{.line-numbers}
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path or triton URL')
@@ -591,29 +691,252 @@ def parse_opt():
     print_args(vars(opt))
     return opt
 ```
+### 检测结果
+
+如果未在检测时指定 `--project` 参数和 `--name` 参数，训练结果将保存在 `yolov5/runs/detect/` 路径下，里面会放着检测结果的图片和视频。模型会将检测到的目标用方框标记出来，并在方框中显示检测到的目标类别。目标类别旁边的数字是检测到的目标置信度，代表模型认为检测到的目标有多大的可能性是该类别。
+例子：
+![result](./imgs/result.jpg)
 
 ---
 
 ## 模型量化
 
 ### 模型导出
-`pt` 格式导出为 `onnx` 格式
-```bash
+`.pt` 格式导出为 `.onnx` 格式
+```bash{.line-numbers}
 python export.py --weights ./nret/qd-subway-yolov5m-v36/weights/best.pt --include onnx --device 0 --opset 12
 ```
 `--weights` 参数替换成自己的模型
 ### 模型查看
-使用 NETRON 可查看 `onnx`，`caffe` 等格式的模型。  
-NETRON 地址：https://netron.app
+使用 NETRON 可查看 `.onnx`，`.caffe` 等格式的模型结构。
+![netron](./imgs/netron.jpg)
+NETRON：https://netron.app
 
 ### 量化工具
 使用对应量化工具来量化模型。
 
----
+Rocketchip，Hailo 和 Eeasy 分别使用其对应的量化工具来进行模型的转换和量化。
 
-## 模型部署
+### 模型量化精度对比
 
-### 模型转换
-使用对应 SDK/NDK 来转换模型到可部署的格式。
+### 1. 选择位置
+
+在 `Netron` 上面打开 `.onnx` 模型，可以看到有很多 `Conv` 模块。
+
+yolov5 的 `Conv` 模块：
+```python {.line-numbers}
+class Conv(nn.Module):
+    def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):
+                # ch_in, ch_out, kernel, stride, padding, groups
+        super(Conv, self).__init__()
+        self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p), groups=g, bias=False)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = nn.Hardswish() if act else nn.Identity()
+
+    def forward(self, x):
+        return self.act(self.bn(self.conv(x)))
+
+    def fuseforward(self, x):
+        return self.act(self.conv(x))
+```
+yolov5 已经没有单独的卷积层了，这些都被包含在 `Conv` 模块里，通过源码可以看到其中包含了 `Conv2d`、`BatchNorm2d`、`Hardwish` 的组合。
+
+其中 `Conv2d` 就是卷积层，`BatchNorm2d` 是归一化层，`Hardwish` 是激活函数。（注：不同大小的模型用的是不同的激活函数）
+
+因此，要查看卷积层的输出就要看 `Conv` 模块的输出。
+
+### 2. 获取 `ONNX` 模型输出 
+
+#### 获取 `shape`
+
+首先，我们要想知道每一层的 `shape`，可以先使用 `infer_shapes()` 函数显示出每一层的 `shape`：
+```python {.line-numbers}
+import onnx
+from onnx import shape_inference
+path = "hunt_camera_v2_yolov5s.onnx" #the path of your onnx model
+onnx.save(onnx.shape_inference.infer_shapes(onnx.load(path)), path)
+```
+
+原始 `.onnx` 模型只能看到输入的 `shape`：
+![onnx](./imgs/onnx_2.jpg)
+
+添加完 `shape` 之后在 `Netron` 中查看就可以看到每一个层和模块的形状了：
+![onnx1](./imgs/onnx.jpg)
+
+#### 创建 `output`
+
+没找到直接查看 `.onnx` 模型每一个模块的输出的办法，因此使用的是直接修改 `.onnx` 模型的方法。方法是在需要查看的 `Conv` 模块后面中添加一个 `output` 节点，这样就可以在模型接收模型输出的时候输出这个 `output` 节点的结果。
+
+创建 `output` 节点：
+```python {.line-numbers}
+import onnx
+import sys
+from onnx import helper, TensorProto
+# load model
+model = onnx.load_model("hunt_camera_v2_yolov5s.onnx")
+new_model_name = "hunt_camera_v2_yolov5s_edited.onnx"
+module_name = '/model.0/conv/Conv'
+
+# add output
+intermediate_layer_value_info = helper.make_tensor_value_info(module_name + '_output_0', TensorProto.FLOAT, tmp_caffe.shape)
+model.graph.output.extend([intermediate_layer_value_info])
+onnx.save(model, new_model_name)
+onnx.checker.check_model(model)
+```
+
+创建 `output` 节点之后，再次使用 `Netron` 查看发现多了一个 `Conv_output_0`：
+![onnx2](./imgs/onnx_1.jpg)
+
+但是只能通过 `InferenceSession()` 函数运行整个模型来查看 `Conv_output_0` 的结果，不能直接运行到这一层来查看。
+```python {.line-numbers}
+# run model
+import onnxruntime as ort
+
+new_model_name = "hunt_camera_v2_yolov5s_edited.onnx"
+ort_session = ort.InferenceSession(new_model_name)
+input_name = ort_session.get_inputs()[0].name
+output_name = ort_session.get_outputs()[-1].name
+print("Model input name: " + input_name)
+print("Model output name: " + output_name)
+```
+
+### 3. 获取量化后的模型输出
+
+#### 获取 `CAFFE` 模型输出
+
+``` python {.line-numbers}
+import caffe
+
+deploy = './hunt_camera_v2_yolov5s_11weight16b_letterbox/deploy_q.prototxt'
+model = './hunt_camera_v2_yolov5s_11weight16b_letterbox/deploy_q.caffemodel'
+
+layer_name = layer
+#layer_name = '/model.1/conv/Conv'
+
+caffe.set_mode_gpu()
+net = caffe.Net(deploy, model, caffe.TEST)
+input_name = net.inputs[0]
+net.blobs[input_name].reshape(*img_in.shape)
+net.blobs[input_name].data[...] = 1.0 * img_in
+res = net.forward()
+
+layer_output = net.blobs[layer_name].data
+```
+
+`.caffe` 模型在前向传播后即可直接查看任意层和模块的输出，只要有正确的名称即可。这些名称可以参考 `deploy.prototxt` 文件或者查看 `Netron`。
+
+#### 获取 `RKNN` 模型输出
+
+```python {.line-numbers}
+from rknn.api import RKNN
+
+# Create RKNN object
+rknn = RKNN(verbose=True)
+
+# pre-process config
+print('--> Config model')
+rknn.config(mean_values=[[0,0,0]],
+#std_values=[[255,255,255]],
+target_platform='rk3588')
+print('done')
+
+print('--> Loading model')
+rknn.load_onnx(model=new_model_name)
+print('done')
+# rknn.config(batch_size=1)
+# rknn.init_runtime()
+
+# Build model
+print('--> Building model')
+rknn.build(do_quantization=False)
+print('done')
+rknn.export_rknn('./model.rknn')
+rknn.init_runtime()
+# print('image.shape:', image.shape)
+#conf_rknn, boxes_rknn, tmp_rknn = rknn.inference(inputs=[img_rknn])
+pred_rknn = rknn.inference(inputs=[img_onnx], data_format='nchw')
+tmp_rknn = pred_rknn[-1]
+```
+`.rknn` 的输出查看方法和`.onnx` 模型类似，需要先修改 `.onnx` 模型然后再转换到 `.rknn` 模型来查看。目前仅能有效查看不量化的 `.rknn` 模型输出，因此 `do_quantization` 设置为 `False`。
+
+还未找到快速的查看量化后的 `.rknn` 模型的方法。
+
+### 4. 模型输出对比
+
+对比代码：
+``` python {.line-numbers}
+import numpy as np
+import onnxruntime as ort
+
+ort_session = ort.InferenceSession(new_model_name)
+input_name = ort_session.get_inputs()[0].name
+output_name = ort_session.get_outputs()[-1].name
+print("Model input name: " + input_name)
+print("Model output name: " + output_name)
+
+
+tmp_onnx; # ONNX 模型输出
+tmp_caffe; # CAFFE 模型输出
+
+tmp_onnx = np.squeeze(tmp_onnx)
+tmp_caffe = np.squeeze(tmp_caffe)
+tmp_onnx = tmp_onnx.reshape(-1,tmp_onnx.shape[-1])
+tmp_caffe = tmp_caffe.reshape(-1,tmp_caffe.shape[-1])
+
+# for idx in range(tmp_onnx.shape[0],2):
+for idx in range(0,4):
+    print('********************* ONNX:%d ****************************' % idx)
+    print(tmp_onnx[idx,:20])
+    print('********************* CAFFE:%d ****************************' % idx)
+    print(tmp_caffe[idx,:20])
+
+difference = np.sum(np.abs(tmp_onnx-tmp_caffe)) # 计算两个模型输出张量的差异
+total_weight = np.sum(np.abs(tmp_onnx)) # 计算 ONNX 模型输出张量的和
+print('totoal-difference:', difference)
+print('totoal-weight:', total_weight)
+print('drift-rate: %.4f%%' % (difference/total_weight*100)) # 差异 / 和 * 100 得到差异率
+return difference/total_weight*100
+```
+
+测试 `/model.24/m.2/Conv` 层运行结果：
+```
+Model input name: images
+Model output name: /model.24/m.2/Conv_output_0
+********************* ONNX:0 ****************************
+[ 2.0380955  -0.64926183  0.25349885 -0.7876912  -0.68828493 -0.68378574
+-0.71489865 -0.6836378  -0.71785384 -0.72170687 -0.7149651  -0.7498944
+-0.738917   -0.75762194 -0.74980915 -0.749394   -0.67710674 -1.2237241
+0.38467658 -1.9263489 ]
+********************* CAFFE:0 ****************************
+[ 2.   -0.5  -0.25 -1.25 -0.75 -0.25 -0.75 -0.75 -0.75 -0.5  -0.75 -0.25
+-0.25 -0.75 -0.5  -0.75 -0.5  -1.25  0.5  -2.  ]
+********************* ONNX:1 ****************************
+[ 1.8464661  -0.6614782   0.4983362   0.05329314  0.05828527  0.13097596
+0.11110447  0.11521395  0.1272501   0.14217213  0.1303185   0.12556425
+0.11870486  0.09002665  0.07062544  0.17548232  0.07286057 -0.65011483
+0.61550593 -2.1564612 ]
+********************* CAFFE:1 ****************************
+[ 1.75 -0.75  0.75 -0.    0.    0.    0.25 -0.    0.    0.25  0.25  0.
+-0.    0.25  0.25  0.    0.   -0.25  0.5  -1.25]
+********************* ONNX:2 ****************************
+[ 1.9916768  -0.7141057   0.897146    0.2966341   0.819836    0.39354512
+-0.02427719  0.1300515   0.3129658   0.36364385  0.34432718  0.30698228
+0.15846515  0.00796852  0.07667588  0.45316887  0.5310508  -1.0984457
+-0.02884804 -2.4522328 ]
+********************* CAFFE:2 ****************************
+[ 1.25 -0.75  1.25  0.75  1.25  0.25 -0.   -0.25 -0.25  0.5   0.5   0.
+-0.5   0.5   0.25  0.    1.   -0.   -1.5  -3.25]
+********************* ONNX:3 ****************************
+[ 2.00982    -0.6291439   0.5626283   0.3935729   0.5332883   0.5499117
+0.37429148  0.40586212  0.40179613  0.26119912  0.32364634  0.36331028
+0.33779922  0.29995415  0.26458564  0.46278474  0.14686139 -0.46416113
+0.5365127  -2.373597  ]
+********************* CAFFE:3 ****************************
+[ 1.   -1.    1.   -1.25  0.75 -0.5   0.5   0.   -0.5   0.75 -0.5   0.25
+0.25 -1.    0.5  -0.25  0.25  2.25 -0.   -3.25]
+totoal-difference: 28496.715
+totoal-weight: 103959.42
+drift-rate: 27.4114%
+``` 
 
 ---
